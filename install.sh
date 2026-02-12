@@ -12,14 +12,13 @@ find "$DOTFILES_PATH" -type f -path "$DOTFILES_PATH/.*" | while read df; do
   ln -sf "$df" "$link"
 done
 
-# 2. Install core tools
+# 2. Install core tools + headless display stack
+# Note: firefox-esr is NOT available on Ubuntu 22.04 via apt.
+# Playwright installs its own bundled Firefox in step 4, which is all we need.
 sudo apt-get update -qq
-sudo apt-get install -y -qq mosh tmux jq
+sudo apt-get install -y -qq mosh tmux jq sqlite3 xvfb x11vnc
 
-# 3. Install headless browser stack (Xvfb + VNC + Firefox)
-sudo apt-get install -y -qq xvfb x11vnc firefox-esr
-
-# 4. Install Node.js tools (Playwright MCP)
+# 3. Install Node.js tools (Playwright MCP)
 # Volta is pre-installed by the claude-code devcontainer feature
 if command -v volta &>/dev/null; then
   volta install node@lts
@@ -27,6 +26,11 @@ fi
 # Pre-install Playwright MCP and its Firefox browser
 npx -y @anthropic-ai/mcp-playwright --version 2>/dev/null || true
 npx -y playwright install firefox 2>/dev/null || true
+
+# 4. Install Claude Code via native installer (takes PATH precedence over Volta version)
+if [ ! -f "$HOME/.local/bin/claude" ]; then
+  curl -fsSL https://claude.ai/install.sh | bash
+fi
 
 # 5. Configure tmux
 cp "$DOTFILES_PATH/.tmux.conf" "$HOME/.tmux.conf" 2>/dev/null || cat > "$HOME/.tmux.conf" << 'TMUX'
